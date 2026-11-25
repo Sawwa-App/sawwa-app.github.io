@@ -21,7 +21,7 @@ CSS = """
 :root { --bg:#F4F5F2; --surface:#FFFFFF; --text:#13201C; --muted:#33403B; --line:#E1E6E2; --primary:#0E5A4A; --primary-pressed:#0A4538; --on-primary:#FFFFFF; }
 @media (prefers-color-scheme: dark) { :root { --bg:#0F1513; --surface:#18201D; --text:#E7ECEA; --muted:#A9B5B0; --line:#25302C; --primary:#4FB59A; --primary-pressed:#3E9A82; --on-primary:#0B1F1A; } }
 * { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans Arabic","Readex Pro",system-ui,-apple-system,"Segoe UI",sans-serif; }
 main { max-width:860px; margin:0 auto; padding:32px 16px 64px; display:flex; flex-direction:column; gap:20px; }
 header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .brand { display:flex; align-items:center; gap:12px; font-size:20px; font-weight:700; color:var(--text); text-decoration:none; }
@@ -31,7 +31,7 @@ nav a, .doc a, .foot a { color:var(--primary); }
 .langs { display:flex; gap:8px; }
 .langs a { font-size:14px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; color:var(--text); text-decoration:none; background:var(--surface); }
 section { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px; display:flex; flex-direction:column; gap:12px; }
-h1 { margin:0; font-size:24px; line-height:32px; }
+h1 { margin:0; font-family:"Readex Pro","IBM Plex Sans Arabic",sans-serif; font-size:24px; line-height:32px; }
 h2 { margin:12px 0 0; font-size:18px; line-height:26px; }
 p, li { margin:0; font-size:16px; line-height:26px; color:var(--muted); }
 [lang=ar] ol { list-style-type:arabic-indic; }
@@ -52,6 +52,7 @@ def page(path, title, desc, body):
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="icon" href="/icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600;700&display=swap">
 <style>{CSS}</style>
 </head>
 <body>
@@ -104,27 +105,11 @@ page("delete-account/index.html", "حذف حسابك على سوا · Delete you
 </div>
 <p class="foot"><a href="/privacy/">Privacy policy · سياسة الخصوصية</a></p>""")
 
-page("index.html", "سوا · Sawwa carpooling",
-     "Sawwa helps people making the same trip in Egypt share a car and its costs.", """<div class="cols">
-<section dir="rtl" lang="ar">
-  <h1>سوا: مشوارك سوا</h1>
-  <p>سوا تطبيق لمشاركة السيارة في مصر. بيساعد الناس اللي رايحين نفس المشوار إنهم يلاقوا بعض ويقسموا مصاريف البنزين.</p>
-  <ul>
-    <li>السائقين بيتراجعوا قبل ما يعرضوا رحلات.</li>
-    <li>رحلات للسيدات فقط.</li>
-    <li>تسجيل الدخول بواتساب.</li>
-    <li>مجاني خلال الفترة التجريبية: سوا مش بتاخد أي عمولة ولا بتتعامل مع أي فلوس.</li>
-  </ul>
-</section>
-<section dir="ltr" lang="en">
-  <h1>Sawwa: ride together</h1>
-  <p>Sawwa is a carpooling app in Egypt. It helps people who are already making the same trip find each other and share fuel costs.</p>
-  <ul>
-    <li>Drivers are reviewed before they can offer rides.</li>
-    <li>Ladies-only rides.</li>
-    <li>Sign in with WhatsApp.</li>
-    <li>Free during the pilot: Sawwa takes no fee and handles no payments.</li>
-  </ul>
-</section>
-</div>""")
+home = (SRC / "home.html").read_text(encoding="utf-8")
+head, body = home.split("</style>", 1)
+(ROOT / "index.html").write_text(
+    '<!doctype html>\n<html lang="ar" dir="rtl">\n<head>\n<meta charset="utf-8">\n'
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+    '<link rel="icon" href="/icon.png">\n' + head + "</style>\n</head>\n<body>\n" + body + "</body>\n</html>\n",
+    encoding="utf-8")
 print("built")
