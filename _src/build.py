@@ -17,53 +17,80 @@ def md(name):
     return subprocess.run(["pandoc", "-f", "markdown-auto_identifiers", "-t", "html5"],
                           input=text, capture_output=True, text=True, check=True).stdout
 
-CSS = """
-:root { --bg:#F4F5F2; --surface:#FFFFFF; --text:#13201C; --muted:#33403B; --line:#E1E6E2; --primary:#0E5A4A; --primary-pressed:#0A4538; --on-primary:#FFFFFF; }
-@media (prefers-color-scheme: dark) { :root { --bg:#0F1513; --surface:#18201D; --text:#E7ECEA; --muted:#A9B5B0; --line:#25302C; --primary:#4FB59A; --primary-pressed:#3E9A82; --on-primary:#0B1F1A; } }
-* { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans Arabic","Readex Pro",system-ui,-apple-system,"Segoe UI",sans-serif; }
-main { max-width:860px; margin:0 auto; padding:32px 16px 64px; display:flex; flex-direction:column; gap:20px; }
-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.brand { display:flex; align-items:center; gap:12px; font-size:20px; font-weight:700; color:var(--text); text-decoration:none; }
-.mark { width:40px; height:40px; border-radius:12px; background:var(--primary); color:var(--on-primary); display:flex; align-items:center; justify-content:center; font-weight:700; }
-nav { display:flex; gap:16px; flex-wrap:wrap; font-size:15px; }
-nav a, .doc a, .foot a { color:var(--primary); }
-.langs { display:flex; gap:8px; }
-.langs a { font-size:14px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; color:var(--text); text-decoration:none; background:var(--surface); }
-section { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px; display:flex; flex-direction:column; gap:12px; }
-h1 { margin:0; font-family:"Readex Pro","IBM Plex Sans Arabic",sans-serif; font-size:24px; line-height:32px; }
-h2 { margin:12px 0 0; font-size:18px; line-height:26px; }
-p, li { margin:0; font-size:16px; line-height:26px; color:var(--muted); }
-[lang=ar] ol { list-style-type:arabic-indic; }
-ol, ul { margin:0; padding-inline-start:22px; display:flex; flex-direction:column; gap:6px; }
-.cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
-.btn { display:inline-flex; align-items:center; min-height:44px; padding:0 18px; border-radius:14px; background:var(--primary); color:var(--on-primary); font-weight:600; text-decoration:none; align-self:flex-start; }
-.btn:hover { background:var(--primary-pressed); }
-.meta { font-size:14px; }
-.foot { text-align:center; font-size:14px; color:var(--muted); }
+HOME = (SRC / "home.html").read_text(encoding="utf-8")
+# The doc pages reuse the home page's tokens, header, footer and language switch.
+BASE_CSS = HOME.split("<style>", 1)[1].split("</style>", 1)[0]
+SCRIPT = HOME[HOME.index("<script>"):HOME.index("</script>") + len("</script>")]
+
+DOC_CSS = """
+.doc-hero { padding-block: 24px 40px; }
+.doc-hero h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1.25; margin: 14px 0 10px; text-wrap: balance; }
+.doc-hero .lede { margin: 0; font-size: 17px; }
+.back { font-size: 15px; text-decoration: none; }
+.doc-band { background: var(--surface); border-block: 1px solid var(--line); padding-block: 48px 64px; }
+.doc-grid { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; align-items: start; }
+.toc { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 1.5; }
+.toc b { font-family: var(--display); font-weight: 600; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.toc a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-inline-start: 2px solid var(--line); }
+.toc a:hover { color: var(--brand); border-color: var(--brand); }
+.prose { max-width: 44em; }
+.prose h2 { font-size: clamp(20px, 2.4vw, 24px); margin: 40px 0 10px; scroll-margin-top: 16px; }
+.prose h2:first-child { margin-top: 0; }
+.prose p { margin: 0 0 12px; color: var(--muted); }
+.prose ol, .prose ul { margin: 0 0 12px; padding-inline-start: 24px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+.prose li::marker { color: var(--brand); font-weight: 600; }
+[lang=ar] .prose ol { list-style-type: arabic-indic; }
+.prose strong { color: var(--ink); }
+.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.card { background: var(--bg); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+.card h2 { font-size: 22px; margin: 0 0 8px; }
+.card p { margin: 0; color: var(--muted); }
+.timeline { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.timeline li { border-top: 3px solid var(--brand); padding-top: 14px; }
+.timeline li:last-child { border-color: var(--line); }
+.timeline b { display: block; font-family: var(--display); font-size: 18px; margin-bottom: 4px; }
+.timeline p { margin: 0; color: var(--muted); font-size: 15px; }
+@media (max-width: 820px) {
+  .doc-grid, .cards, .timeline { grid-template-columns: 1fr; }
+  .doc-grid { gap: 24px; }
+  .toc { position: static; display: none; }
+}
 """
 
-def page(path, title, desc, body):
+def page(path, title, desc, ar, en):
     html = f"""<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600;700&display=swap">
-<style>{CSS}</style>
+<style>{BASE_CSS}{DOC_CSS}</style>
 </head>
 <body>
-<main>
-<header>
-  <a class="brand" href="/"><span class="mark" aria-hidden="true">سوا</span><span>Sawwa · سوا</span></a>
-  <nav><a href="/privacy/">Privacy · الخصوصية</a><a href="/terms/">Terms · الشروط</a><a href="/delete-account/">Delete account · حذف الحساب</a></nav>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark" aria-hidden="true">سوا</span><span>Sawwa · سوا</span></a>
+    <button class="switch" id="lang-switch" type="button"><span class="lang-ar">English</span><span class="lang-en">العربية</span></button>
+  </div>
 </header>
-{body}
-<p class="foot">© 2026 Sawwa · سوا</p>
+<main>
+  <div class="lang-ar" lang="ar" dir="rtl">{ar}</div>
+  <div class="lang-en" lang="en" dir="ltr">{en}</div>
 </main>
+<footer><div class="wrap">
+  <span><span class="lang-ar">© ٢٠٢٦ فريق سوا</span><span class="lang-en">© 2026 The Sawwa team</span></span>
+  <nav>
+    <a href="/privacy/"><span class="lang-ar">سياسة الخصوصية</span><span class="lang-en">Privacy policy</span></a>
+    <a href="/terms/"><span class="lang-ar">الشروط والأحكام</span><span class="lang-en">Terms</span></a>
+    <a href="/delete-account/"><span class="lang-ar">حذف الحساب</span><span class="lang-en">Delete your account</span></a>
+  </nav>
+</div></footer>
+{SCRIPT}
 </body>
 </html>
 """
@@ -71,42 +98,72 @@ def page(path, title, desc, body):
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
 
-def doc(path, ar_title, en_title, ar_md, en_md, ar_meta, en_meta, desc):
-    body = f"""<div class="langs" dir="ltr"><a href="#ar">العربية</a><a href="#en">English</a></div>
-<section id="ar" class="doc" dir="rtl" lang="ar"><h1>{ar_title}</h1><p class="meta">{ar_meta}</p>{md(ar_md)}</section>
-<section id="en" class="doc" dir="ltr" lang="en"><h1>{en_title}</h1><p class="meta">{en_meta}</p>{md(en_md)}</section>"""
-    page(path, f"{ar_title} · {en_title}", desc, body)
+def hero(lang, pill, title, lede):
+    back = "→ الرئيسية" if lang == "ar" else "← Home"
+    return f"""<section class="doc-hero"><div class="wrap">
+  <a class="back" href="/">{back}</a><br>
+  <span class="pill" style="margin-top:20px">{pill}</span>
+  <h1>{title}</h1>
+  <p class="lede">{lede}</p>
+</div></section>"""
 
-doc("privacy/index.html", "سياسة الخصوصية لسوا", "Sawwa Privacy Policy",
-    "privacy-ar.md", "privacy-en.md",
-    "النسخة ١ (الفترة التجريبية). إذا اختلفت النسختان، تُعتمد النسخة العربية.",
-    "Version 1 (pilot). If the Arabic and English versions differ, the Arabic version prevails.",
+def article(lang, mdfile, prefix):
+    html = md(mdfile)
+    toc = []
+    def repl(m):
+        n = len(toc) + 1
+        text = re.sub(r"<[^>]+>", "", m.group(1))
+        toc.append(f'<a href="#{prefix}{n}">{text}</a>')
+        return f'<h2 id="{prefix}{n}">{m.group(1)}</h2>'
+    html = re.sub(r"<h2>(.*?)</h2>", repl, html)
+    label = "المحتويات" if lang == "ar" else "Contents"
+    return f"""<section class="doc-band"><div class="wrap doc-grid">
+  <nav class="toc" aria-label="{label}"><b>{label}</b>{''.join(toc)}</nav>
+  <div class="prose">{html}</div>
+</div></section>"""
+
+def doc(path, slug, t, desc):
+    page(path, f"{t['ar_title']} · {t['en_title']}", desc,
+         hero("ar", t["ar_pill"], t["ar_title"], t["ar_meta"]) + article("ar", f"{slug}-ar.md", "ar-"),
+         hero("en", t["en_pill"], t["en_title"], t["en_meta"]) + article("en", f"{slug}-en.md", "en-"))
+
+AR_META = "النسخة ١ (الفترة التجريبية). إذا اختلفت النسختان، تُعتمد النسخة العربية."
+EN_META = "Version 1 (pilot). If the Arabic and English versions differ, the Arabic version prevails."
+doc("privacy/index.html", "privacy", dict(ar_title="سياسة الخصوصية", en_title="Privacy policy",
+    ar_pill="خصوصيتك", en_pill="Your privacy", ar_meta=AR_META, en_meta=EN_META),
     "How Sawwa collects, uses and protects your personal data.")
-doc("terms/index.html", "الشروط والأحكام لسوا", "Sawwa Terms and Conditions",
-    "terms-ar.md", "terms-en.md",
-    "النسخة ١ (الفترة التجريبية). إذا اختلفت النسختان، تُعتمد النسخة العربية.",
-    "Version 1 (pilot). If the Arabic and English versions differ, the Arabic version prevails.",
+doc("terms/index.html", "terms", dict(ar_title="الشروط والأحكام", en_title="Terms and conditions",
+    ar_pill="قواعد الاستخدام", en_pill="Using Sawwa", ar_meta=AR_META, en_meta=EN_META),
     "The terms for using the Sawwa carpooling app.")
 
+DEL_AR = hero("ar", "حسابك", "حذف حسابك على سوا", "تقدر تحذف حسابك في أي وقت من التطبيق، وده اللي بيحصل بعدها.") + """
+<section class="doc-band"><div class="wrap">
+  <div class="cards">
+    <div class="card"><h2>من التطبيق</h2><p>افتح «حسابي» ثم «حذف الحساب»، واكتب اسمك للتأكيد.</p></div>
+    <div class="card"><h2>مش معاك الموبايل القديم؟</h2><p>نزّل سوا على أي موبايل، وسجّل دخول برقمك (هتبعت كود من واتساب نفس الرقم)، وبعدين احذف الحساب من «حسابي». أو اطلب الحذف من زر «كلم الدعم» في التطبيق.</p></div>
+  </div>
+  <ol class="timeline">
+    <li><b>على طول</b><p>حسابك بيتخفي، وعندك ١٤ يوم لو غيّرت رأيك.</p></li>
+    <li><b>بعد ١٤ يوم</b><p>بنمسح اسمك وصورتك وإشعاراتك وتعليقات التقييم.</p></li>
+    <li><b>بعد ٦ شهور</b><p>بنمسح رقمك واسمك وصور البطاقة ولوحات العربية، اللي بنحتفظ بيها للأمان ولا يشوفها إلا فريق سوا. الرحلات القديمة ودرجات التقييم بتفضل من غير اسمك أو رقمك.</p></li>
+  </ol>
+</div></section>"""
+DEL_EN = hero("en", "Your account", "Delete your Sawwa account", "You can delete your account any time from the app. Here's what happens next.") + """
+<section class="doc-band"><div class="wrap">
+  <div class="cards">
+    <div class="card"><h2>In the app</h2><p>Open Account, then Delete account, and type your name to confirm.</p></div>
+    <div class="card"><h2>Don't have your old phone?</h2><p>Install Sawwa on any phone, sign in with your number (you send a code from that number's WhatsApp), then delete the account from Account. Or ask us through Contact support in the app.</p></div>
+  </div>
+  <ol class="timeline">
+    <li><b>Right away</b><p>Your account is hidden, and you have 14 days to change your mind.</p></li>
+    <li><b>After 14 days</b><p>We erase your name, photo, notifications and rating comments.</p></li>
+    <li><b>After 6 months</b><p>We erase your number, name, ID documents and car plates, kept until then for safety and seen only by the Sawwa team. Past trips and rating scores stay without your name or number.</p></li>
+  </ol>
+</div></section>"""
 page("delete-account/index.html", "حذف حسابك على سوا · Delete your Sawwa account",
-     "How to delete your Sawwa account, and what we erase and keep.", """<div class="cols">
-<section dir="rtl" lang="ar">
-  <h1>حذف حسابك على سوا</h1>
-  <p>من التطبيق: افتح «حسابي» ثم «حذف الحساب»، واكتب اسمك للتأكيد.</p>
-  <p>مش معاك الموبايل القديم؟ نزّل سوا على أي موبايل، وسجّل دخول برقمك (هتبعت كود من واتساب نفس الرقم)، وبعدين احذف الحساب من «حسابي». أو اطلب الحذف من زر «كلم الدعم» في التطبيق.</p>
-  <p>بعد الطلب، حسابك بيتخفي على طول، وعندك ١٤ يوم لو غيّرت رأيك. بعد ١٤ يوم بنمسح اسمك وصورتك وإشعاراتك وتعليقات التقييم. بنحتفظ برقمك واسمك وصور البطاقة ولوحات العربية للأمان ٦ شهور، ولا يشوفها إلا فريق سوا، وبعدين بتتمسح. الرحلات القديمة ودرجات التقييم بتفضل من غير اسمك أو رقمك.</p>
-</section>
-<section dir="ltr" lang="en">
-  <h1>Delete your Sawwa account</h1>
-  <p>In the app: open Account, then Delete account, and type your name to confirm.</p>
-  <p>Don't have your old phone? Install Sawwa on any phone, sign in with your number (you send a code from that number's WhatsApp), then delete the account from Account. Or ask us through Contact support in the app.</p>
-  <p>Your account is hidden at once, and you have 14 days to change your mind. After 14 days we erase your name, photo, notifications and rating comments. We keep your number, name, ID documents and car plates for 6 months for safety, seen only by the Sawwa team, then erase them. Past trips and rating scores stay without your name or number.</p>
-</section>
-</div>
-<p class="foot"><a href="/privacy/">Privacy policy · سياسة الخصوصية</a></p>""")
+     "How to delete your Sawwa account, and what we erase and keep.", DEL_AR, DEL_EN)
 
-home = (SRC / "home.html").read_text(encoding="utf-8")
-head, body = home.split("</style>", 1)
+head, body = HOME.split("</style>", 1)
 (ROOT / "index.html").write_text(
     '<!doctype html>\n<html lang="ar" dir="rtl">\n<head>\n<meta charset="utf-8">\n'
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
